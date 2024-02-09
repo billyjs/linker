@@ -1,5 +1,5 @@
 # linker
-Quick link service using [Rocket]()
+Quick link service using axum, sqlite and sqlx
 
 ## Setup
 
@@ -7,7 +7,7 @@ Install Rust
 
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
-Install sqlx
+Install sqlx cli
 
     cargo install sqlx-cli
 
@@ -22,9 +22,9 @@ Create local database
 ### API
 
     GET /<id>
-        Redirect to link with id, if not found use default link
+        Redirect to link with id
 
-    PUT /<id>, body = { link: String }
+    PUT /<id>, body = { href: String }
         Create new link with id and link from body
 
     DELETE /<id>
@@ -36,6 +36,14 @@ Create local database
     GET /debug/
         Get all links
 
-### CI
+### TODO
 
-cargo install sqlx-cli && cargo sqlx prepare --check
+ci
+* cargo install sqlx-cli && cargo sqlx prepare --check
+
+docker
+
+tests
+
+openapi spec
+* not really priority
