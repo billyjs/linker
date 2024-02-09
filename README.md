@@ -24,7 +24,7 @@ Create local database
     GET /<id>
         Redirect to link with id, if not found use default link
 
-    POST /<id>, body = { link: String }
+    PUT /<id>, body = { link: String }
         Create new link with id and link from body
 
     DELETE /<id>
@@ -35,3 +35,7 @@ Create local database
 
     GET /debug/
         Get all links
+
+### CI
+
+cargo install sqlx-cli && cargo sqlx prepare --check

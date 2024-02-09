@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO links (id, href) VALUES (?1, ?2) ON CONFLICT(id) DO UPDATE SET href=?2 RETURNING id, href;",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "href",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "5c7baceb7d5064e899c33a0d80dc93c1e153a9be21695e169674e3c40392a141"
+}
