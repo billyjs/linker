@@ -1,3 +1,4 @@
+use anyhow::bail;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -5,27 +6,38 @@ use axum::{
     routing::{delete, get, put},
     Json, Router,
 };
-use dotenv::dotenv;
 use links::Link;
 use serde::Deserialize;
-use sqlx::{sqlite::SqlitePoolOptions, Pool, Sqlite};
-use std::env;
+use sqlx::{
+    sqlite::{SqliteConnectOptions, SqlitePool},
+    Pool, Sqlite,
+};
+use std::{
+    borrow::Cow,
+    net::{Ipv4Addr, SocketAddr},
+    str::FromStr,
+};
+use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 
 mod links;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
 
-    dotenv().ok();
+    let env = EnvironmentVariables::from_env()?;
 
-    let db_connection_str = env::var("DATABASE_URL").expect("no database url found");
+    let pool = SqlitePool::connect_with(
+        SqliteConnectOptions::from_str(&env.database_url)?.create_if_missing(true),
+    )
+    .await
+    .expect("can't connect to database");
 
-    let pool = SqlitePoolOptions::new()
-        .connect(&db_connection_str)
+    sqlx::migrate!()
+        .run(&pool)
         .await
-        .expect("can't connect to database");
+        .expect("can't run database migrations");
 
     let app = Router::new()
         .route("/:id", get(redirect))
@@ -36,13 +48,14 @@ async fn main() {
         .layer(TraceLayer::new_for_http())
         .with_state(pool);
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:8000")
-        .await
-        .unwrap();
+    let socket = SocketAddr::from((Ipv4Addr::UNSPECIFIED, env.port));
+    let listener = TcpListener::bind(socket).await?;
 
-    tracing::debug!("listening on {}", listener.local_addr().unwrap());
+    tracing::debug!("listening on {}:{}", socket.ip(), socket.port());
 
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, app).await?;
+
+    Ok(())
 }
 
 async fn redirect(
@@ -101,4 +114,27 @@ where
 #[derive(Deserialize)]
 struct Payload {
     href: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct EnvironmentVariables {
+    pub database_url: Cow<'static, str>,
+    pub port: u16,
+}
+
+impl EnvironmentVariables {
+    pub fn from_env() -> anyhow::Result<Self> {
+        dotenv::dotenv().ok();
+
+        Ok(Self {
+            database_url: match dotenv::var("DATABASE_URL") {
+                Ok(url) => url.into(),
+                Err(err) => bail!("missing DATABASE_URL: {err}"),
+            },
+            port: match dotenv::var("PORT") {
+                Ok(port) => port.parse()?,
+                _ => 8000,
+            },
+        })
+    }
 }
