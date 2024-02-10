@@ -16,6 +16,6 @@ FROM debian:bookworm-slim AS runtime
 WORKDIR /app
 COPY --from=builder /app/target/release/linker /usr/local/bin
 ENV DATABASE_URL="sqlite:/data/db.sqlite"
-ENV PORT=8000
+ENV PORT=80
 ENTRYPOINT ["/usr/local/bin/linker"]
-EXPOSE 8000
+EXPOSE 80
